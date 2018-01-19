@@ -91,23 +91,37 @@
         }
 
         public static function put($args){
-            return self::getCurlResponse(array(
+
+            $requestContent = array(
                 CURLOPT_RETURNTRANSFER  =>  1,
                 CURLOPT_CUSTOMREQUEST   =>  'PUT',
                 CURLOPT_URL             =>  $args['url'],
                 CURLOPT_POSTFIELDS      =>  $args['data'],
                 CURLOPT_SSL_VERIFYPEER  =>  2
-            ));
+            );
+
+            if ( isset($args['headers']) ){
+                $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
+            }
+
+            return self::getCurlResponse();
         }
 
         public static function delete($args){
-            return self::getCurlResponse(array(
+
+            $requestContent = array(
                 CURLOPT_RETURNTRANSFER  =>  1,
                 CURLOPT_CUSTOMREQUEST   =>  'DELETE',
                 CURLOPT_URL             =>  $args['url'],
                 CURLOPT_POSTFIELDS      =>  $args['data'],
                 CURLOPT_SSL_VERIFYPEER  =>  2
-            ));
+            );
+
+            if ( isset($args['headers']) ){
+                $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
+            }
+
+            return self::getCurlResponse();
         }
 
         private static function getCurlResponse($args){
