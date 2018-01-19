@@ -1,7 +1,12 @@
 # Ysphp
+
     一个没有文档的自用框架, 不定期更新, 公司有啥需求做什么
     
     Not sure what is this for
+
+### 使用方法
+
+        加载Ysphp目录下的load.php
 
 ### 包含模块
 ##### Namespace\module name
