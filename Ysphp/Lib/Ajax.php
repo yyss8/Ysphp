@@ -2,7 +2,7 @@
 
     namespace Ysphp;
 
-    Class Ajax_Handler{
+    Class Ajax{
     
         public function __construct($count = false) {
 
