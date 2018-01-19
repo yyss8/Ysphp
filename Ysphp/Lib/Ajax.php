@@ -17,6 +17,9 @@
 
         //返回json
         public function json(){
+            if ( !$this->output ){
+                header('Content-Type: application/json');
+            }
             return $this->output ? '':json_encode($this->response);
         }
         
