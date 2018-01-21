@@ -12,15 +12,21 @@
             if ( isset($this->currentData['action']) ){
                 $this->output   = isset($this->currentData['output']) ? $this->currentData['output']:false;
                 $this->response = $this->fetchApiContent();
+            }else{
+                $this->response = array(
+                    'status'    =>  'err',
+                    'content'   =>  'Unknown Ajax Action'
+                );
             }
         }
 
         //返回json
         public function json(){
+            
             if ( !$this->output ){
                 header('Content-Type: application/json');
             }
-            return $this->output ? '':json_encode($this->response);
+            return $output ? '':json_encode($this->response);
         }
         
         //PHP默认只存储GET以及POST信息, 通过file_get_contents获取put以及delete的请求信息

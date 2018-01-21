@@ -65,7 +65,8 @@
                 CURLOPT_URL             =>  $args['url'],
                 CURLOPT_POST            =>  1,
                 CURLOPT_POSTFIELDS      =>  $args['data'],
-                CURLOPT_SSL_VERIFYPEER  =>  2
+                CURLOPT_SSL_VERIFYPEER  =>  false,
+                CURLOPT_SSL_VERIFYHOST  =>  false
             );
 
             if ( isset($args['headers']) ){
@@ -80,8 +81,9 @@
         public static function get($args){
             $requestContent = array(
                 CURLOPT_RETURNTRANSFER  =>  1,
-                CURLOPT_URL             =>  $args['url'] . '?' . http_build_query($args['data']),
-                CURLOPT_SSL_VERIFYPEER  =>  2
+                CURLOPT_URL             =>  is_array($args) ? $args['url'] . '?' . http_build_query($args['data']) : $args,
+                CURLOPT_SSL_VERIFYPEER  =>  false,
+                CURLOPT_SSL_VERIFYHOST  =>  false
             );
 
             if ( isset($args['headers']) ){
