@@ -71,8 +71,10 @@
 
             if ( isset($args['headers']) ){
                 $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
+                $requestContent[CURLINFO_HEADER_OUT] = true;
             }
-          
+            
+
             return self::getCurlResponse($requestContent);
         }
 

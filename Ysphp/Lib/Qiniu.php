@@ -4,7 +4,7 @@
 
     class Qiniu{
 
-        protected $url              = 'https://rs.qbox.me/'; //默认地址
+        protected $url              = 'https://rs.qiniu.com'; //常用地址
         protected $upload_url       = 'https://upload-z1.qiniu.com/'; //上传地址
 
         /** 
@@ -40,48 +40,42 @@
             return "{$this->accessKey}:$encodedSign:$encodedParams";
         }
 
+        protected function fetchRegularToken($entry){
+            $signedEntry    = hash_hmac( 'sha1', $entry , $this->secretKey, true);
+            $encodedSign    = self::safe_encode( $signedEntry );
+            return "{$this->accessKey}:$encodedSign";
+        }
+
         //通过图片链接并转换为base64通过七牛base64接口上传
         public function uploadByUrl($bucket, $url, $params = array()){
 
-            //检测是否需要使用名字
-            if ( !isset($params['fileName']) || $params['fileName'] === '' ){
-                //获取链接文件名称并通过随机数避免重复名称, 如果原文件名存在则替换其中的-字符避免与七牛云样式分隔符冲突
-                $randomTxt      = date('mdHi');
-                $basename       = basename( $url );
-                $orgName        = $basename === '' ? "product$randomTxt": "$randomTxt$basename";
-                $_filename      = str_replace( '-', '_', substr( md5( $orgName ), 0 , 17 ) . $randomTxt);
-            }else{
-                $_filename = $fileName;
-            }
+            //检测是否文件名为空, 如果为空则获取链接文件名称并通过随机数避免重复名称
+            $_filename  = isset($params['fileName']) && $params['fileName'] !== '' ? $params['fileName'] : self::getRandomKey($url);
 
-            //凭证参数
+            //处理凭证参数
             $_params     = array(
                 'scope'         =>  isset( $params['fileName'] ) ? "$bucket:$_filename":$bucket,
-                'deadline'      =>  isset( $params['deadline'] ) && self::is_valid_timestamp($params['deadline']) ? $params['deadline'] : strtotime( 'now +30 min' ),
-                'insertOnly'    =>  isset( $params['insertOnly']) && $params['insertOnly'] ? 1:0,
-                'detectMime'    =>  '1',
-                'mimeLimit'     =>  'image/*',
-                'fileType'      =>  isset( $params['storeType'] ) && $params['storeType'] === 'low' ? 1:0
+                'deadline'      =>  isset( $params['deadline'] ) && self::is_valid_timestamp($params['deadline']) ? $params['deadline'] : strtotime( 'now +30 min' )
             );
 
-            //上传格式检测
+            if ( isset( $params['insertOnly']) && $params['insertOnly'] === true ){
+                $_params['insertOnly'] = 1;
+            }
+            if ( isset($params['fileType']) && $params['fileType'] === 'low' ){
+                $_params['fileType'] = 1;
+            }
             if ( isset($params['uploadType']) && $params['uploadType'] !== ''){
                 $_params['detectMime']  = 1;
                 $_params['mimeLimit']   = $params['uploadType'];
             }
-
-            //返回链接以及参数
             if ( isset($params['returnUrl']) && isset($params['returnBody']) ){
                 $_params['returnUrl']   = $params['returnUrl'];
                 $_params['returnBody']  = is_array( $params['returnBody'] ) ? json_encode( $params['returnBody'] ):$params['returnBody'];
             }
-
-            //回调链接以及参数
             if ( isset($params['callbackUrl']) && isset($params['callbackBody']) ){
                 $_params['callbackUrl']     = $params['callbackUrl'];
                 $callbackBodyType           = isset( $params['callbackBodyType'] ) ? strtoupper( $params['callbackBodyType'] ):'JSON';
 
-                //处理不同返回格式回调数据, 全部以大写检测
                 switch ( $callbackBodyType ){
                     case 'AJAX':
                     case 'APPLICATION/X-WWW-FORM-URLENCODED':
@@ -95,27 +89,21 @@
                         $_params['callbackBodyType']    = 'application/json';
                 }
             }
-
-            //检测上传文件最小size, 单位为byte
             if ( isset($params['fsizeMin']) && $params['fsizeMin'] !== '' ){
                 $_params['fsizeMin'] = $params['fsizeMin'];
             }
-
-            //检测上传文件最大size, 单位为byte
             if ( isset($params['fsizeLimit']) && $params['fsizeLimit'] !== '' ){
                 $_params['fsizeLimit'] = $params['fsizeLimit'];
             }
             
             //获取上传凭证
-            $token          = $this->fetchUploadToken($bucket,  $_params );
-            //获取文件
+            $token          = $this->fetchUploadToken( $_params );
             $file           = file_get_contents( $url );
             $authorization  = "UpToken $token";
             $fileSize       = strlen( $file );
             $encodedKey     = self::safe_encode( $_filename );
             $uploadUrl      = $this->upload_url . "putb64/$fileSize/key/$encodedKey"; 
 
-            //提交信息
             $postContent    = array(
                 'url'           =>  $uploadUrl,
                 'data'          =>  base64_encode( $file ),
@@ -126,14 +114,58 @@
             );
             $response       = Ys_Global::post( $postContent );
 
-            return array(
-                'key'       =>  $_filename,
-                'response'  =>  json_decode( $response->scalar )
-            );
+            return json_decode( $response->scalar );
         }
 
-        public function uploadByFile($bucket, $fileName = ''){
-            return Ys_Global::get( $this->upload_url );
+        //通过$_FILES上传图片
+        public function uploadByFile($bucket, $file_name = '', $params = array()){
+            return $this->uploadByUrl( $bucket, $_FILES[$file_name]['tmp_name'], $params );
+        }
+
+        //删除资源
+        public function delete($bucket, $key){
+
+            $encodedEntry   = self::safe_encode( "$bucket:$key" );
+            $query          = "/delete/$encodedEntry";
+            $token          = $this->fetchRegularToken( "$query\n" );
+            $authorization  = "QBox $token";
+            $postContent    = array(
+                'url'           =>  $this->url . $query,
+                'headers'       =>  array(
+                    'Content-Type: application/x-www-form-urlencoded',
+                    "Authorization: $authorization"
+                )
+            );
+            $response       = Ys_Global::post( $postContent );
+            return json_decode( $response->scalar );       
+        }
+
+        //更改文件名称
+        public function changeFileName( $params = array() ){
+
+            $previousEntry  = self::safe_encode( "{$params['previousBucket']}:{$params['previousKey']}" );
+            $newEntry       = self::safe_encode( "{$params['newBucket']}:{$params['newKey']}" );
+            $query          = "/move/$previousEntry/$newEntry/force/false";
+            $token          = $this->fetchRegularToken( "$query\n" );
+            $authorization  = "QBox $token";
+            $postContent    = array(
+                'url'           =>  $this->url . $query,
+                'headers'       =>  array(
+                    'Content-Type: application/x-www-form-urlencoded',
+                    "Authorization: $authorization"
+                )
+            );
+
+            $response       = Ys_Global::post( $postContent );
+            return json_decode( $response->scalar );
+        }
+
+        //根据时间随机生成不重复文件名并替换-为_避免与七牛云图片样式冲突
+        public static function getRandomKey($orgUrl = ''){
+            $randomTxt      = date('mdHi');
+            $_randomTxt     = $orgUrl === '' ? $randomTxt . rand(0,200) : $randomTxt . rand(0,99) . basename($orgUrl);
+            $randomKey      = str_replace( '-', '_', substr( md5( $_randomTxt ), 0 , 17 ) . $randomTxt);
+            return $randomKey;
         }
 
         //转码为七牛云可接收的格式
