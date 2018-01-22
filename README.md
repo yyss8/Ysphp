@@ -31,8 +31,22 @@
   
 4. Ysphp\Qiniu (完成图片上传功能) 
 
-        自用七牛上传工具, 暂时只完成图片base64图片链接上传
-  
+        自用七牛上传工具, 使Ys_Global中封装的curl方法处理七牛请求
+        
+        1. uploadByUrl(bucket名, url路径, params参数): 路径上传
+        
+            通过文件地址（网址或文件路径）上传至七牛云, 如果不添加insertOnly参数则遇到bucket下同名称资源则覆盖原资源
+                     
+            返回Object形式  成功返回 hash码以及key  失败返回{ error: 失败信息 }
+                    
+        2. uploadByFile(bucket名, fileName文件名, params参数):文件上传
+        
+            类似uploadByUrl, 将$_FILES中文件的路径传至uploadByUrl
+        
+        3. delete (bucket名, key文件名)
+        
+            通过bucket和key的组合删除七牛云指定资源
+
 5. Ysphp\Database\Mysql (做这个是因为记不住php自带的mysqli命令)
 
         一个简单封装过的Mysqli库
