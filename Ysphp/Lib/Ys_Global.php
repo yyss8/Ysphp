@@ -64,7 +64,7 @@
                 CURLOPT_RETURNTRANSFER  =>  1,
                 CURLOPT_URL             =>  $args['url'],
                 CURLOPT_POST            =>  1,
-                CURLOPT_POSTFIELDS      =>  $args['data'],
+                CURLOPT_POSTFIELDS      =>  isset($args['data']) ? $args['data']:'',
                 CURLOPT_SSL_VERIFYPEER  =>  false,
                 CURLOPT_SSL_VERIFYHOST  =>  false
             );
@@ -73,15 +73,30 @@
                 $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
                 $requestContent[CURLINFO_HEADER_OUT] = true;
             }
+
+            if ( isset($args['withProxy']) ){
+                $requestContent[CURLOPT_PROXY] = $args['withProxy'];
+
+                if ( isset($args['proxyType']) ){
+                    $requestContent[CURLOPT_PROXYTYPE] = $args['proxyType'];
+                }
+
+                if ( isset($args['proxyAuth']) && is_array( $args['proxyAuth'] ) ){
+                    $requestContent[PROXYUSERPWD] = "{$args['proxyAuth']['username']}:{$args['proxyAuth']['password']}";
+                }
+            }
             
 
             return self::getCurlResponse($requestContent);
         }
 
         public static function get($args){
+
+            $data = isset( $args['data'] ) ? '?' . http_build_query($args['data']):'';
+
             $requestContent = array(
                 CURLOPT_RETURNTRANSFER  =>  1,
-                CURLOPT_URL             =>  is_array($args) ? $args['url'] . '?' . http_build_query($args['data']) : $args,
+                CURLOPT_URL             =>  is_array($args) ? $args['url'] . $data : $args,
                 CURLOPT_SSL_VERIFYPEER  =>  false,
                 CURLOPT_SSL_VERIFYHOST  =>  false
             );
@@ -89,6 +104,20 @@
             if ( isset($args['headers']) ){
                 $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
             }
+
+
+            if ( isset($args['withProxy']) ){
+                $requestContent[CURLOPT_PROXY] = $args['withProxy'];
+
+                if ( isset($args['proxyType']) ){
+                    $requestContent[CURLOPT_PROXYTYPE] = $args['proxyType'];
+                }
+
+                if ( isset($args['proxyAuth']) && is_array( $args['proxyAuth'] ) ){
+                    $requestContent[PROXYUSERPWD] = "{$args['proxyAuth']['username']}:{$args['proxyAuth']['password']}";
+                }
+            }
+
             return self::getCurlResponse($requestContent);
         }
 
@@ -98,12 +127,25 @@
                 CURLOPT_RETURNTRANSFER  =>  1,
                 CURLOPT_CUSTOMREQUEST   =>  'PUT',
                 CURLOPT_URL             =>  $args['url'],
-                CURLOPT_POSTFIELDS      =>  $args['data'],
+                CURLOPT_POSTFIELDS      =>  isset($args['data']) ? $args['data']:'',
                 CURLOPT_SSL_VERIFYPEER  =>  2
             );
 
             if ( isset($args['headers']) ){
                 $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
+            }
+
+            
+            if ( isset($args['withProxy']) ){
+                $requestContent[CURLOPT_PROXY] = $args['withProxy'];
+
+                if ( isset($args['proxyType']) ){
+                    $requestContent[CURLOPT_PROXYTYPE] = $args['proxyType'];
+                }
+
+                if ( isset($args['proxyAuth']) && is_array( $args['proxyAuth'] ) ){
+                    $requestContent[PROXYUSERPWD] = "{$args['proxyAuth']['username']}:{$args['proxyAuth']['password']}";
+                }
             }
 
             return self::getCurlResponse();
@@ -115,12 +157,24 @@
                 CURLOPT_RETURNTRANSFER  =>  1,
                 CURLOPT_CUSTOMREQUEST   =>  'DELETE',
                 CURLOPT_URL             =>  $args['url'],
-                CURLOPT_POSTFIELDS      =>  $args['data'],
+                CURLOPT_POSTFIELDS      =>  isset($args['data']) ? $args['data']:'',    
                 CURLOPT_SSL_VERIFYPEER  =>  2
             );
 
             if ( isset($args['headers']) ){
                 $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
+            }
+
+            if ( isset($args['withProxy']) ){
+                $requestContent[CURLOPT_PROXY] = $args['withProxy'];
+
+                if ( isset($args['proxyType']) ){
+                    $requestContent[CURLOPT_PROXYTYPE] = $args['proxyType'];
+                }
+
+                if ( isset($args['proxyAuth']) && is_array( $args['proxyAuth'] ) ){
+                    $requestContent[PROXYUSERPWD] = "{$args['proxyAuth']['username']}:{$args['proxyAuth']['password']}";
+                }
             }
 
             return self::getCurlResponse();

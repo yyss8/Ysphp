@@ -20,13 +20,31 @@
             }
         }
 
+        public function response(){
+            if ( $this->output ){
+                return $this->raw();
+            }
+
+            header('Content-Type: application/json');
+            return json_encode($this->response);
+        }
+
+        public function print(){
+            if ( $this->output ){
+                echo $this->raw();
+            }
+
+            header('Content-Type: application/json');
+            echo json_encode($this->response);
+        }
+
         //返回json
         public function json(){
-            
-            if ( !$this->output ){
-                header('Content-Type: application/json');
-            }
-            return $output ? '':json_encode($this->response);
+            return json_encode($this->response);
+        }
+
+        public function raw(){
+            return $this->response;
         }
         
         //PHP默认只存储GET以及POST信息, 通过file_get_contents获取put以及delete的请求信息
