@@ -30,12 +30,10 @@
         }
 
         public function print(){
-            if ( $this->output ){
-                echo $this->raw();
+            if ( !$this->output ){
+                header('Content-Type: application/json');
+                echo json_encode($this->response);
             }
-
-            header('Content-Type: application/json');
-            echo json_encode($this->response);
         }
 
         //返回json

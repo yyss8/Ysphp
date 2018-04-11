@@ -141,7 +141,8 @@
                 $queryResult = mysqli_query($this->connection, $query);
                 if ($queryResult){
 
-                    $result->content = [];
+                    $response['content'] = [];
+
                     while($r = mysqli_fetch_assoc($queryResult)){
                         if ($hasKey){
                             $keyValue = $r[$options['keyField']];
@@ -160,6 +161,35 @@
             }
                 
             return (object)$response;
+        }
+
+        //fetch single variable from query
+        public function variable( $query ){
+
+            $response = array(
+                'hasError'      =>  false,
+                'content'       =>  null,
+                'errorMessage'  =>  ''
+            );
+
+            if ( empty( $query ) ){
+                throw new \Exception ('YSPHP: Empty Query.');
+            }
+
+            if (!is_array($query)){
+                    
+                $queryResult    = mysqli_query($this->connection, $query);
+                if (!$queryResult){
+                    $response['hasError']       = true;
+                    $response['errorMessage']   = mysqli_error($this->connection);
+                }else{
+                    $response['content']        = current((array)mysqli_fetch_object($queryResult));
+                }
+
+                return (object) $response; 
+
+            }
+
         }
 
         public function truncate($table){

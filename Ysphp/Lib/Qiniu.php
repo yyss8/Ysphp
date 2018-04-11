@@ -139,7 +139,11 @@
             return json_decode( $response->scalar );       
         }
 
-        //批量操作
+        /**
+         * 七牛云批量操作
+         * @param array $resource 批量内容
+         * @param string $action 操作类型
+         */
         public function batchAction( $resources, $action ){
 
             if ( !$action || $action === ''){

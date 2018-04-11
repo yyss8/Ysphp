@@ -4,8 +4,19 @@
 
     Class Ys_Global{
 
-        // public function __construct(){
-        // }
+        public static function get_request_ip(){
+
+            if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+                $ip = $_SERVER['HTTP_CLIENT_IP'];
+            } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+                $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+            } else {
+                $ip = $_SERVER['REMOTE_ADDR'];
+            }
+
+            return $ip;
+        }
+
         public static function array_find($ary, Callable $callback = null){
             
             if (!is_callable($callback) || $callback === null){
@@ -69,6 +80,11 @@
                 CURLOPT_SSL_VERIFYHOST  =>  false
             );
 
+            if ( isset($args['timeout']) ){
+                $responseContent[CURLOPT_CONNECTTIMEOUT] = isset($args['reconnectTimeout']) && !empty( $args['reconnectTimeout'] ) ? $args['reconnectTimeout']:0;
+                $responseContent[CURLOPT_TIMEOUT] = $args['timeout']; 
+            }
+
             if ( isset($args['headers']) ){
                 $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
                 $requestContent[CURLINFO_HEADER_OUT] = true;
@@ -85,7 +101,6 @@
                     $requestContent[PROXYUSERPWD] = "{$args['proxyAuth']['username']}:{$args['proxyAuth']['password']}";
                 }
             }
-            
 
             return self::getCurlResponse($requestContent);
         }
@@ -101,10 +116,14 @@
                 CURLOPT_SSL_VERIFYHOST  =>  false
             );
 
+            if ( isset($args['timeout']) ){
+                $responseContent[CURLOPT_CONNECTTIMEOUT] = isset($args['reconnectTimeout']) && !empty( $args['reconnectTimeout'] ) ? $args['reconnectTimeout']:0;
+                $responseContent[CURLOPT_TIMEOUT] = $args['timeout']; 
+            }
+
             if ( isset($args['headers']) ){
                 $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
             }
-
 
             if ( isset($args['withProxy']) ){
                 $requestContent[CURLOPT_PROXY] = $args['withProxy'];
@@ -131,11 +150,15 @@
                 CURLOPT_SSL_VERIFYPEER  =>  2
             );
 
+            if ( isset($args['timeout']) ){
+                $responseContent[CURLOPT_CONNECTTIMEOUT] = isset($args['reconnectTimeout']) && !empty( $args['reconnectTimeout'] ) ? $args['reconnectTimeout']:0;
+                $responseContent[CURLOPT_TIMEOUT] = $args['timeout']; 
+            }
+
             if ( isset($args['headers']) ){
                 $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
             }
 
-            
             if ( isset($args['withProxy']) ){
                 $requestContent[CURLOPT_PROXY] = $args['withProxy'];
 
@@ -161,6 +184,11 @@
                 CURLOPT_SSL_VERIFYPEER  =>  2
             );
 
+            if ( isset($args['timeout']) ){
+                $responseContent[CURLOPT_CONNECTTIMEOUT] = isset($args['reconnectTimeout']) && !empty( $args['reconnectTimeout'] ) ? $args['reconnectTimeout']:0;
+                $responseContent[CURLOPT_TIMEOUT] = $args['timeout']; 
+            }
+
             if ( isset($args['headers']) ){
                 $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
             }
@@ -184,9 +212,74 @@
             $curl = curl_init();
             curl_setopt_array($curl,$args);
             $response           = curl_exec($curl);
-            $responseContent    = $response ? $response:array('hasError' => true, 'errorMessage' => curl_error($curl));
+
+            if ( !$response ){
+
+                $curlInfo           = curl_getinfo( $curl );
+
+                $responseContent    = array(
+                    'hasError'      => true, 
+                    'errorMessage'  => curl_error( $curl ), 
+                    'statusCode'    => $curlInfo['http_code']
+                );
+            }else{
+                $responseContent    = $response;
+            }
+
             curl_close($curl);
             return (object) $responseContent;
+        }
+
+        /**
+         * 生成XML节点, 通过自迭代遍历所传入数组下所有数据
+         * @param array $params 所要遍历的数据
+         * @param int $level 用于计算并生成易于阅读格式的XML空格数 (可选)
+         * 
+         * @return string格式的xml信息
+         */
+        public static function buildNode($params, $level = null){
+
+            $node_text  = '';
+            $nxtLevel   = $level === null ? $level:$level + 1;
+            if ($nxtLevel !== null){
+                foreach ($params as $param => $value){
+                    //是否含有下层节点
+                    $spaces = str_repeat('   ' , $nxtLevel);
+                    if (is_array($value)){
+                        $node_text .= "\n$spaces<$param>" . self::buildNode($value, $nxtLevel) . "</$param>\n";
+                    }else{
+                        $node_text .= "$spaces<$param>$value</$param>\n";
+                    }
+                }    
+            }else{
+
+                $isAssoicative  = self::hasStringKeys( $params );
+
+                if ( $isAssoicative ){
+                    foreach ($params as $param => $value){
+                        //是否含有下层节点
+                        if (is_array($value)){
+                            $node_text .= "<$param>" . self::buildNode($value) . "</$param>";
+                        }else{
+                            $node_text .= "<$param>$value</$param>";
+                        }
+                    }    
+                }else{
+
+                    foreach ( $params as $arrayNode ){
+                        $key        =   key( $arrayNode );
+                        $node_text  .=  "<$key>". self::buildNode( $arrayNode[$key] ) ."</$key>";
+                    }
+
+                }
+
+            }
+
+            return $node_text;
+        }
+
+        public static function hasStringKeys(array $array) {
+            return count(array_filter(array_keys($array), 'is_string')) > 0;
         }
 
     }
