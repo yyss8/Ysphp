@@ -71,38 +71,59 @@
         //curl requsts
 
         public static function post($args){
-            $requestContent = array(
+
+            if ( isset( $args['data'] ) ){
+                $data = isset( $args['json'] ) && $args['json'] === true ? http_build_query( $args['data'] ):$args['data'];
+            }else{
+                $data = '';
+            }
+
+            $requestContent = [
                 CURLOPT_RETURNTRANSFER  =>  1,
                 CURLOPT_URL             =>  $args['url'],
                 CURLOPT_POST            =>  1,
-                CURLOPT_POSTFIELDS      =>  isset($args['data']) ? $args['data']:'',
+                CURLOPT_POSTFIELDS      =>  $data,
                 CURLOPT_SSL_VERIFYPEER  =>  false,
                 CURLOPT_SSL_VERIFYHOST  =>  false
-            );
+            ];
 
-            if ( isset($args['timeout']) ){
-                $responseContent[CURLOPT_CONNECTTIMEOUT] = isset($args['reconnectTimeout']) && !empty( $args['reconnectTimeout'] ) ? $args['reconnectTimeout']:0;
-                $responseContent[CURLOPT_TIMEOUT] = $args['timeout']; 
+            return isset( $args['send'] ) && $args['send'] === false
+                   ? self::prepareCurlObj( $requestContent, $args )
+                   : self::getCurlResponse( self::prepareCurlObj( $requestContent, $args ) );
+        }
+
+        public static function multiCurl( $objArgs ){
+
+            $mt         = curl_multi_init();
+            $jobs       = [];
+            $responses  = [];
+
+            foreach ( $objArgs as $index => $objArg ){
+                $cl = curl_init();
+                curl_setopt_array( $cl, $objArg['args']);
+                $jobs[$index] = $cl;
+                curl_multi_add_handle( $mt, $cl);
             }
 
-            if ( isset($args['headers']) ){
-                $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
-                $requestContent[CURLINFO_HEADER_OUT] = true;
+            do {
+                curl_multi_exec($mt, $exec);
+            } while($exec > 0);
+
+            foreach ( $objArgs as $index => $args ){
+                $response = curl_multi_getcontent( $jobs[$index] );
+
+                $responses[] = (object)[
+                    'response'      =>  $response,
+                    'index'         =>  $index
+                ];
+
+                curl_multi_remove_handle( $mt,  $jobs[$index] );
+                curl_close( $jobs[$index] );
             }
 
-            if ( isset($args['withProxy']) ){
-                $requestContent[CURLOPT_PROXY] = $args['withProxy'];
+            curl_multi_close( $mt );
 
-                if ( isset($args['proxyType']) ){
-                    $requestContent[CURLOPT_PROXYTYPE] = $args['proxyType'];
-                }
-
-                if ( isset($args['proxyAuth']) && is_array( $args['proxyAuth'] ) ){
-                    $requestContent[PROXYUSERPWD] = "{$args['proxyAuth']['username']}:{$args['proxyAuth']['password']}";
-                }
-            }
-
-            return self::getCurlResponse($requestContent);
+            return $responses;
         }
 
         public static function get($args){
@@ -116,96 +137,51 @@
                 CURLOPT_SSL_VERIFYHOST  =>  false
             );
 
-            if ( isset($args['timeout']) ){
-                $responseContent[CURLOPT_CONNECTTIMEOUT] = isset($args['reconnectTimeout']) && !empty( $args['reconnectTimeout'] ) ? $args['reconnectTimeout']:0;
-                $responseContent[CURLOPT_TIMEOUT] = $args['timeout']; 
-            }
-
-            if ( isset($args['headers']) ){
-                $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
-            }
-
-            if ( isset($args['withProxy']) ){
-                $requestContent[CURLOPT_PROXY] = $args['withProxy'];
-
-                if ( isset($args['proxyType']) ){
-                    $requestContent[CURLOPT_PROXYTYPE] = $args['proxyType'];
-                }
-
-                if ( isset($args['proxyAuth']) && is_array( $args['proxyAuth'] ) ){
-                    $requestContent[PROXYUSERPWD] = "{$args['proxyAuth']['username']}:{$args['proxyAuth']['password']}";
-                }
-            }
-
-            return self::getCurlResponse($requestContent);
+            return isset( $args['send'] ) && $args['send'] === false
+                   ? self::prepareCurlObj( $requestContent, $args )
+                   : self::getCurlResponse( self::prepareCurlObj( $requestContent, $args ) );
         }
 
         public static function put($args){
+
+            if ( isset( $args['data'] ) ){
+                $data = isset( $args['json'] ) && $args['json'] === true ? http_build_query( $args['data'] ):$args['data'];
+            }else{
+                $data = '';
+            }
 
             $requestContent = array(
                 CURLOPT_RETURNTRANSFER  =>  1,
                 CURLOPT_CUSTOMREQUEST   =>  'PUT',
                 CURLOPT_URL             =>  $args['url'],
-                CURLOPT_POSTFIELDS      =>  isset($args['data']) ? $args['data']:'',
+                CURLOPT_POSTFIELDS      =>  $data,
                 CURLOPT_SSL_VERIFYPEER  =>  2
             );
 
-            if ( isset($args['timeout']) ){
-                $responseContent[CURLOPT_CONNECTTIMEOUT] = isset($args['reconnectTimeout']) && !empty( $args['reconnectTimeout'] ) ? $args['reconnectTimeout']:0;
-                $responseContent[CURLOPT_TIMEOUT] = $args['timeout']; 
-            }
-
-            if ( isset($args['headers']) ){
-                $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
-            }
-
-            if ( isset($args['withProxy']) ){
-                $requestContent[CURLOPT_PROXY] = $args['withProxy'];
-
-                if ( isset($args['proxyType']) ){
-                    $requestContent[CURLOPT_PROXYTYPE] = $args['proxyType'];
-                }
-
-                if ( isset($args['proxyAuth']) && is_array( $args['proxyAuth'] ) ){
-                    $requestContent[PROXYUSERPWD] = "{$args['proxyAuth']['username']}:{$args['proxyAuth']['password']}";
-                }
-            }
-
-            return self::getCurlResponse();
+            return isset( $args['send'] ) && $args['send'] === false
+                   ? self::prepareCurlObj( $requestContent, $args )
+                   : self::getCurlResponse( self::prepareCurlObj( $requestContent, $args ) );
         }
 
         public static function delete($args){
+
+            if ( isset( $args['data'] ) ){
+                $data = isset( $args['json'] ) && $args['json'] === true ? http_build_query( $args['data'] ):$args['data'];
+            }else{
+                $data = '';
+            }
 
             $requestContent = array(
                 CURLOPT_RETURNTRANSFER  =>  1,
                 CURLOPT_CUSTOMREQUEST   =>  'DELETE',
                 CURLOPT_URL             =>  $args['url'],
-                CURLOPT_POSTFIELDS      =>  isset($args['data']) ? $args['data']:'',    
+                CURLOPT_POSTFIELDS      =>  $data,    
                 CURLOPT_SSL_VERIFYPEER  =>  2
             );
 
-            if ( isset($args['timeout']) ){
-                $responseContent[CURLOPT_CONNECTTIMEOUT] = isset($args['reconnectTimeout']) && !empty( $args['reconnectTimeout'] ) ? $args['reconnectTimeout']:0;
-                $responseContent[CURLOPT_TIMEOUT] = $args['timeout']; 
-            }
-
-            if ( isset($args['headers']) ){
-                $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
-            }
-
-            if ( isset($args['withProxy']) ){
-                $requestContent[CURLOPT_PROXY] = $args['withProxy'];
-
-                if ( isset($args['proxyType']) ){
-                    $requestContent[CURLOPT_PROXYTYPE] = $args['proxyType'];
-                }
-
-                if ( isset($args['proxyAuth']) && is_array( $args['proxyAuth'] ) ){
-                    $requestContent[PROXYUSERPWD] = "{$args['proxyAuth']['username']}:{$args['proxyAuth']['password']}";
-                }
-            }
-
-            return self::getCurlResponse();
+            return isset( $args['send'] ) && $args['send'] === false
+                   ? self::prepareCurlObj( $requestContent, $args )
+                   : self::getCurlResponse( self::prepareCurlObj( $requestContent, $args ) );
         }
 
         private static function getCurlResponse($args){
@@ -213,21 +189,68 @@
             curl_setopt_array($curl,$args);
             $response           = curl_exec($curl);
 
+            $responseContent = self::prepareResponseObj( $response, $curl );
+
+            curl_close($curl);
+            return $responseContent;
+        }
+
+        private static function prepareResponseObj( $response, $curl ){
             if ( !$response ){
 
                 $curlInfo           = curl_getinfo( $curl );
 
-                $responseContent    = array(
+                $responseContent    = [
                     'hasError'      => true, 
                     'errorMessage'  => curl_error( $curl ), 
                     'statusCode'    => $curlInfo['http_code']
-                );
+                ];
             }else{
-                $responseContent    = $response;
+                $responseContent    = [
+                    'scalar'        =>  $response,
+                    'httpCode'      =>  curl_getinfo( $curl, CURLINFO_HTTP_CODE )
+                ];
             }
 
-            curl_close($curl);
-            return (object) $responseContent;
+            return is_array( $responseContent ) ? (object) $responseContent:$responseContent;
+        }
+
+        private static function prepareCurlObj( $requestContent,  $args = [] ){
+            
+            if ( isset($args['timeout']) ){
+                $requestContent[CURLOPT_CONNECTTIMEOUT] = isset($args['reconnectTimeout']) && !empty( $args['reconnectTimeout'] ) ? $args['reconnectTimeout']:0;
+                $requestContent[CURLOPT_TIMEOUT] = $args['timeout']; 
+            }
+
+            if ( isset($args['headers']) ){
+                $requestContent[CURLOPT_HTTPHEADER] = $args['headers'];
+                $requestContent[CURLINFO_HEADER_OUT] = true;
+            }
+
+            if ( isset($args['withProxy']) ){
+                $requestContent[CURLOPT_PROXY] = $args['withProxy'];
+                //$requestContent[CURLOPT_HTTPPROXYTUNNEL] = true;
+
+                if ( isset($args['proxyType']) ){
+                    $requestContent[CURLOPT_PROXYTYPE] = $args['proxyType'];
+                }
+
+                if ( isset($args['proxyAuth']) && is_array( $args['proxyAuth'] ) ){
+                    $requestContent[PROXYUSERPWD] = "{$args['proxyAuth']['username']}:{$args['proxyAuth']['password']}";
+                }
+            }
+
+            if ( isset( $args['followRedirect'] ) ){
+                $requestContent[CURLOPT_FOLLOWLOCATION] = $args['followRedirect'];       
+            }
+
+            if ( isset( $args['cookie'] ) ){
+
+                $requestContent[CURLOPT_COOKIEJAR] = $args['cookie'];
+                $requestContent[CURLOPT_COOKIEFILE] = $args['cookie'];
+            }
+
+            return $requestContent;
         }
 
         /**
@@ -280,6 +303,12 @@
 
         public static function hasStringKeys(array $array) {
             return count(array_filter(array_keys($array), 'is_string')) > 0;
+        }
+
+        public static function isAssocArray(array $arr){
+
+            if (array() === $arr) return false;
+            return array_keys($arr) !== range(0, count($arr) - 1);
         }
 
     }
